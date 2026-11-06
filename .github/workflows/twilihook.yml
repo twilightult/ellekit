@@ -11,7 +11,7 @@ jobs:
       - name: Build Dylib
         run: |
           cd injector
-          clang -dynamiclib -o libinjector.dylib injector.c -I../vendor/include -framework Foundation -framework CoreFoundation
+          clang -dynamiclib -o libinjector.dylib injector.c -I../vendor/include -framework Foundation -framework CoreFoundation -include injector.h
 
       - name: Package Deb
         run: |
