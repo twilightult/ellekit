@@ -27,7 +27,7 @@ jobs:
           echo "Package: com.twilihook.fix" > build_deb/DEBIAN/control
           echo "Name: ElleKit Fix" >> build_deb/DEBIAN/control
           echo "Version: 1.0.0" >> build_deb/DEBIAN/control
-          echo "Architecture: iphoneos-arm64" >> build_deb/DEBIAN/control
+          echo "Architecture: iphoneos-arm64e" >> build_deb/DEBIAN/control
           echo "Description: Fixed ElleKit null pointer" >> build_deb/DEBIAN/control
           echo "Maintainer: twilightult" >> build_deb/DEBIAN/control
           echo "Author: twilightult" >> build_deb/DEBIAN/control
