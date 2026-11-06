@@ -317,7 +317,7 @@ __attribute__((constructor)) static void injection_init(void) {
 
 #if !TARGET_OS_OSX
 
-    if (access("/var/jb/usr/lib/ellekit/libinjector.dylib", F_OK) == 0) {
+    if (1 ||access("/var/jb/usr/lib/ellekit/libinjector.dylib", F_OK) == 0) {
         rootless = true;
     }
 
