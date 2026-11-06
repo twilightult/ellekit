@@ -4,17 +4,18 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      MACRO_ROOTLESS: '-DTWEAKS_DIRECTORY_ROOTLESS="/var/jb/usr/lib/TweakInject/"'
-      MACRO_ROOTFUL: '-DTWEAKS_DIRECTORY_ROOTFUL="/usr/lib/TweakInject/"'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install dpkg
+        run: |
+          brew install dpkg
+
       - name: Build Dylib
         run: |
           cd injector
-          clang -dynamiclib -o libinjector.dylib injector.c -I../vendor/include -framework Foundation -framework CoreFoundation $MACRO_ROOTLESS $MACRO_ROOTFUL
+          clang -dynamiclib -o libinjector.dylib injector.c -I../vendor/include -framework Foundation -framework CoreFoundation -DTWEAKS_DIRECTORY_ROOTLESS='"/var/jb/usr/lib/TweakInject/"' -DTWEAKS_DIRECTORY_ROOTFUL='"/usr/lib/TweakInject/"'
 
       - name: Package Deb
         run: |
