@@ -1,66 +1,47 @@
-name: CI
+name: Build ElleKit Rootless
 
 on:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - "**/*.md"
-      - ".gitignore"
-
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - "**/*.md"
-      - ".gitignore"
-
+    branches: [ "main" ]
   workflow_dispatch:
-  release:
-    types: [published]
 
 jobs:
   build:
-    name: Build
-    runs-on: macos-13
-    strategy:
-      matrix:
-        include:
-          - name: debug
-            flags: ""
-          - name: release
-            flags: "RELEASE=1"
-          - name: mac
-            flags: "RELEASE=1 MAC=1"
-
+    # Use latest macOS runner (M-series / Apple Silicon)
+    runs-on: macos-latest
+    
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Get tags
-        run: git fetch --prune --unshallow --tags
-
-      - name: Select Xcode version (15.1)
-        run: |
-          sudo xcode-select --switch /Applications/Xcode_15.1.app
-
-      - name: Bootstrap Procursus
-        uses: dhinakg/procursus-action@main
         with:
-          packages: ldid findutils sed coreutils
-          cache: true
-          cache-path: ~/__cache
+          submodules: recursive
 
-      - name: Build ${{ matrix.name }}
-        run: make ${{ matrix.flags }}
+      - name: Setup Theos Environment
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Upload packages to artifacts
+      - name: Install Dependencies
+        run: |
+          # Install ldid natively on Apple Silicon to fix binary permission/signing issues
+          brew install ldid xz
+
+      - name: Compile Rootless arm64e
+        run: |
+          export THEOS_PACKAGE_SCHEME=rootless
+          export TARGET=iphone:clang:latest:17.0
+          # Force target architecture to arm64e for iPad A12X
+          export ARCHS=arm64e
+          
+          # Force ldid to fake-sign the binary. This is critical on M-series runners 
+          # to prevent "Permission Denied" or trustcache rejection on iOS 17.
+          export CODESIGN_FLAGS="-S"
+          
+          make clean package DEBUG=0 FINALPACKAGE=1
+
+      - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }} package
-          path: ${{ github.workspace }}/packages/*
-      - name: Upload packages to release
-        if: github.event_name == 'release' && matrix.name == 'release'
-        uses: svenstaro/upload-release-action@2.7.0
-        with:
-          file: ${{ github.workspace }}/packages/*.deb
-          file_glob: true
+          name: ellekit-rootless-arm64e
+          path: packages/*.deb
