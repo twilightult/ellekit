@@ -12,6 +12,8 @@
 #include <mach/mach.h>
 #include <stdbool.h>
 #include <libkern/OSCacheControl.h>
+#include <stdio.h>
+#include <unistd.h>
 
 // MARK: - PAC
 
@@ -80,18 +82,19 @@ int hook_sandbox_check(audit_token_t au, const char *operation, int sandbox_filt
 #include <mach/port.h>
 #include <mach/vm_prot.h>
 
-__attribute__((noinline, naked)) volatile kern_return_t custom_mach_vm_protect(mach_port_name_t target, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection)
-{
-#if __arm64__
-    __asm("mov x16, #0xFFFFFFFFFFFFFFF2");
-    __asm("svc 0x80");
-    __asm("ret");
-#else
-    __asm(".intel_syntax noprefix; \
-           mov rax, 0xFFFFFFFFFFFFFFF2; \
-           syscall; \
-           ret");
-#endif
+__attribute__((noinline)) kern_return_t custom_mach_vm_protect(mach_port_name_t target, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection) {
+    kern_return_t kr = mach_vm_protect(target, address, size, set_maximum, new_protection);
+    
+    if (kr != KERN_SUCCESS) {
+        int fd = open("/var/mobile/ellekit_debug.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+        if (fd != -1) {
+            char buf[128];
+            int len = snprintf(buf, sizeof(buf), "[ElleKit] mach_vm_protect fail! kr=%d, target=0x%llx\n", kr, (unsigned long long)address);
+            write(fd, buf, len);
+            close(fd);
+        }
+    }
+    return kr;
 }
 
 void manual_memcpy(void *restrict dest, const void *src, size_t len) {
@@ -127,19 +130,35 @@ kern_return_t EKHookMemoryRaw_impl(void *target, const void *data, size_t size)
         }
 
         kr = custom_mach_vm_protect(mach_task_self_, machTarget, size, 0, newFlags);
-		
-        if (kr != KERN_SUCCESS) return kr;
+
+        if (kr != KERN_SUCCESS) {
+            int fd = open("/var/mobile/ellekit_debug.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if (fd != -1) {
+                char buf[128];
+                int len = snprintf(buf, sizeof(buf), "[ElleKit] Hook Memory Raw fail! kr=%d\n", kr);
+                write(fd, buf, len);
+                close(fd);
+            }
+            return kr;
+        }
     }
 
     manual_memcpy(target, data, size);
 
     if (needsRemap) {
         kr = custom_mach_vm_protect(mach_task_self_, machTarget, size, 0, info.protection);
-        if (kr != KERN_SUCCESS) return kr;
+        if (kr != KERN_SUCCESS) {
+            int fd = open("/var/mobile/ellekit_debug.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if (fd != -1) {
+                char buf[128];
+                int len = snprintf(buf, sizeof(buf), "[ElleKit] Restore Memory Raw fail! kr=%d\n", kr);
+                write(fd, buf, len);
+                close(fd);
+            }
+            return kr;
+        }
     }
 
     sys_icache_invalidate(target, size);
     return kr;
 }
-
-__attribute__((visibility ("default"))) kern_return_t (*EKHookMemoryRaw)(void *, const void *, size_t) = EKHookMemoryRaw_impl;
