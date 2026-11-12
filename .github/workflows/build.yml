@@ -7,9 +7,7 @@ on:
 
 jobs:
   build:
-    # Use latest macOS runner (M-series / Apple Silicon)
     runs-on: macos-latest
-    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -24,20 +22,14 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          # Install ldid natively on Apple Silicon to fix binary permission/signing issues
           brew install ldid xz
 
       - name: Compile Rootless arm64e
         run: |
           export THEOS_PACKAGE_SCHEME=rootless
           export TARGET=iphone:clang:latest:17.0
-          # Force target architecture to arm64e for iPad A12X
           export ARCHS=arm64e
-          
-          # Force ldid to fake-sign the binary. This is critical on M-series runners 
-          # to prevent "Permission Denied" or trustcache rejection on iOS 17.
           export CODESIGN_FLAGS="-S"
-          
           make clean package DEBUG=0 FINALPACKAGE=1
 
       - name: Upload DEB
