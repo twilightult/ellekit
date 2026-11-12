@@ -1,8 +1,6 @@
 name: Build ElleKit Rootless
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
