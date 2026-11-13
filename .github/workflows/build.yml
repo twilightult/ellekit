@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -36,8 +36,7 @@ jobs:
           TWEAK_NAME = ElleKit
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           
-          # Disable modules, disable all warnings, and remove the problematic KERNEL defines
-          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -fno-modules -w -Wno-error
+          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -w -Wno-error
           ElleKit_LDFLAGS = -undefined dynamic_lookup
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
