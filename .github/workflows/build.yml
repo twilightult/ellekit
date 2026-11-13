@@ -37,7 +37,6 @@ jobs:
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           
           ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -fno-modules -w -Wno-error -Wno-implicit-function-declaration
-          ElleKit_LDFLAGS = -undefined dynamic_lookup
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
           include $(THEOS_MAKE_PATH)/tweak.mk
