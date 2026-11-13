@@ -23,7 +23,7 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Generate Makefile and Filter
+      - name: Generate Makefile, Filter and Control
         run: |
           cat << 'EOF' > Makefile
           TARGET := iphone:clang:latest:15.0
@@ -43,9 +43,22 @@ jobs:
           include $(THEOS_MAKE_PATH)/tweak.mk
           EOF
 
-          # 强造 Filter 文件，让 Theos 闭嘴
+          # Generate Filter plist
           cat << 'EOF' > ElleKit.plist
           { Filter = { Bundles = ( "com.apple.springboard" ); }; }
+          EOF
+
+          # Create the Debian control file to satisfy the packager
+          mkdir -p layout/DEBIAN
+          cat << 'EOF' > layout/DEBIAN/control
+          Package: com.evelyneee.ellekit
+          Name: ElleKit
+          Version: 1.2.1-patched
+          Architecture: iphoneos-arm64
+          Description: Patched ElleKit for iOS 17.4.1
+          Maintainer: Twilight
+          Author: Twilight
+          Section: Tweaks
           EOF
 
       - name: Compile and Package
