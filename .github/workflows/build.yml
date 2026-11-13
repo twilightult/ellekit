@@ -16,25 +16,11 @@ jobs:
 
       - name: Setup Theos & Dependencies
         run: |
-          # Install required tools
           brew install ldid xz dpkg make
-          
-          # Fix Homebrew make name issue
           sudo ln -s $(brew --prefix)/opt/make/libexec/gnubin/make /usr/local/bin/make || true
-          
-          # Setup Theos (Do NOT re-clone sdks since theos already has it)
           git clone --recursive https://github.com/theos/theos.git $HOME/theos
           
-          export THEOS=$HOME/theos
-          export PATH=$THEOS/bin:$PATH
-          export THEOS_PACKAGE_SCHEME=rootless
-          export TARGET=iphone:clang:latest:15.0
-          export ARCHS=arm64e
-          
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          echo "THEOS_PACKAGE_SCHEME=rootless" >> $GITHUB_ENV
-          echo "TARGET=iphone:clang:latest:15.0" >> $GITHUB_ENV
-          echo "ARCHS=arm64e" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
       - name: Generate Makefile
@@ -49,7 +35,9 @@ jobs:
 
           TWEAK_NAME = ElleKit
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
-          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include
+          
+          # 强制编译器忽略各种新版报错
+          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -Wno-implicit-function-declaration -Wno-pointer-sign
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
           include $(THEOS_MAKE_PATH)/tweak.mk
