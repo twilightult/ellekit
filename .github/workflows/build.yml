@@ -1,4 +1,4 @@
-name: Build ElleKit Rootless
+name: Build ElleKit Rootless with Theos
 
 on:
   push:
@@ -14,37 +14,59 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build ElleKit via Xcode
+      - name: Setup Theos & Dependencies
         run: |
-          xcodebuild -scheme ellekit -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
-          xcodebuild -scheme injector -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
-          xcodebuild -scheme loader -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
-          xcodebuild -scheme launchd -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
+          # Install required tools
+          brew install ldid xz dpkg make
+          
+          # Setup Theos
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          git clone --depth=1 https://github.com/theos/sdks.git $HOME/theos/sdks
+          
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+          export THEOS_PACKAGE_SCHEME=rootless
+          export TARGET=iphone:clang:latest:15.0
+          export ARCHS=arm64e
+          
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          echo "THEOS_PACKAGE_SCHEME=rootless" >> $GITHUB_ENV
+          echo "TARGET=iphone:clang:latest:15.0" >> $GITHUB_ENV
+          echo "ARCHS=arm64e" >> $GITHUB_ENV
+          echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Package DEB
+      - name: Generate Makefile
         run: |
-          mkdir -p layout/var/jb/usr/lib/TweakInject/
-          mkdir -p layout/var/jb/usr/lib/
-          mkdir -p layout/DEBIAN/
-          
-          find . -name "ElleKit.dylib" -exec cp {} layout/var/jb/usr/lib/TweakInject/ \;
-          find . -name "libellekit.dylib" -exec cp {} layout/var/jb/usr/lib/ \;
-          
-          cat <<EOF > layout/DEBIAN/control
-          Package: com.evelyneee.ellekit
-          Name: ElleKit
-          Version: 1.2-patched
-          Architecture: iphoneos-arm64
-          Description: Patched ElleKit for iOS 17.4.1
-          Maintainer: Twilight
-          Author: Twilight
-          Section: Tweaks
+          # Create a clean Theos Makefile to bypass Xcode entirely
+          cat << 'EOF' > Makefile
+          TARGET := iphone:clang:latest:15.0
+          ARCHS = arm64e
+          INSTALL_TARGET_PROCESSES = SpringBoard
+          THEOS_PACKAGE_SCHEME = rootless
+
+          include $(THEOS)/makefiles/common.mk
+
+          TWEAK_NAME = ElleKit
+          ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
+          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include
+          ElleKit_FRAMEWORKS = Foundation CoreFoundation
+          ElleKit_PRIVATE_FRAMEWORKS = 
+
+          include $(THEOS_MAKE_PATH)/tweak.mk
           EOF
+
+      - name: Compile and Package
+        run: |
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+          export THEOS_PACKAGE_SCHEME=rootless
+          make clean package DEBUG=0 FINALPACKAGE=1
           
-          dpkg-deb -b layout ellekit-patched.deb
+          # Ensure the deb is found even if Theos names it weirdly
+          find . -name "*.deb" -exec cp {} ./ellekit-patched.deb \;
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: ellekit-patched-rootless
+          name: ellekit-theos-rootless
           path: ellekit-patched.deb
