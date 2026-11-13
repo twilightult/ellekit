@@ -15,6 +15,9 @@
 #include <mach/thread_status.h>
 #include "include/mach.h"
 
+__attribute__((visibility("default"))) extern mach_port_t EKLaunchExceptionHandler(void);
+__attribute__((visibility("default"))) extern void EKAddHookToRegistry(void* target, void* replacement);
+
 /*
 void EKOrigPrelog(void) {
     thread_act_t thread = mach_thread_self();
