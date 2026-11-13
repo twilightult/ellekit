@@ -83,13 +83,13 @@ int hook_sandbox_check(audit_token_t au, const char *operation, int sandbox_filt
 #include <mach/vm_prot.h>
 
 __attribute__((noinline)) kern_return_t custom_mach_vm_protect(mach_port_name_t target, mach_vm_address_t address, mach_vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection) {
-    kern_return_t kr = mach_vm_protect(target, address, size, set_maximum, new_protection);
+    kern_return_t kr = vm_protect(target, address, size, set_maximum, new_protection);
     
     if (kr != KERN_SUCCESS) {
         int fd = open("/var/mobile/ellekit_debug.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
         if (fd != -1) {
             char buf[128];
-            int len = snprintf(buf, sizeof(buf), "[ElleKit] mach_vm_protect fail! kr=%d, target=0x%llx\n", kr, (unsigned long long)address);
+            int len = snprintf(buf, sizeof(buf), "[ElleKit] vm_protect fail! kr=%d, target=0x%llx\n", kr, (unsigned long long)address);
             write(fd, buf, len);
             close(fd);
         }
