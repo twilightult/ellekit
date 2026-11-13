@@ -23,7 +23,7 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Generate Makefile
+      - name: Generate Makefile and Filter
         run: |
           cat << 'EOF' > Makefile
           TARGET := iphone:clang:latest:15.0
@@ -41,6 +41,11 @@ jobs:
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
           include $(THEOS_MAKE_PATH)/tweak.mk
+          EOF
+
+          # 强造 Filter 文件，让 Theos 闭嘴
+          cat << 'EOF' > ElleKit.plist
+          { Filter = { Bundles = ( "com.apple.springboard" ); }; }
           EOF
 
       - name: Compile and Package
