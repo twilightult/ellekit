@@ -36,9 +36,6 @@ jobs:
           TWEAK_NAME = ElleKit
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           
-          # 1. -D 定义强行注入 mach_vm_protect 函数原型，绕过废弃头文件
-          # 2. -w 关闭所有警告
-          # 3. -Wno-error 禁止警告变报错
           ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -w -Wno-error -Dmach_vm_protect\(t,a,s,m,p\)=vm_protect\(t,a,s,m,p\)
           ElleKit_LDFLAGS = -undefined dynamic_lookup
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
