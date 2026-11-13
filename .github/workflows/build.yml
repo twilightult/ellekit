@@ -36,7 +36,9 @@ jobs:
           TWEAK_NAME = ElleKit
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           
-          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -fno-modules -w -Wno-error -Wno-implicit-function-declaration
+          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -fno-modules -w -Wno-error -Wno-implicit-function-declaration -fvisibility=default
+          # THE ULTIMATE FIX: Force binding and disable dead code stripping
+          ElleKit_LDFLAGS = -Wl,-undefined,dynamic_lookup -Wl,-no_dead_strip_inits_and_terms -Wl,-all_load
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
           include $(THEOS_MAKE_PATH)/tweak.mk
