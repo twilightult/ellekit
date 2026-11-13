@@ -23,7 +23,7 @@ jobs:
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
           echo "$HOME/theos/bin" >> $GITHUB_PATH
 
-      - name: Generate Makefile, Filter and Control
+      - name: Generate Makefile and Filter
         run: |
           cat << 'EOF' > Makefile
           TARGET := iphone:clang:latest:15.0
@@ -36,20 +36,31 @@ jobs:
           TWEAK_NAME = ElleKit
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           
-          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -fno-modules -w -Wno-error
+          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -fno-modules -w -Wno-error -Wno-implicit-function-declaration
           ElleKit_LDFLAGS = -undefined dynamic_lookup
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
           include $(THEOS_MAKE_PATH)/tweak.mk
           EOF
 
-          # Generate Filter plist
           cat << 'EOF' > ElleKit.plist
           { Filter = { Bundles = ( "com.apple.springboard" ); }; }
           EOF
 
-          # Create the Debian control file to satisfy the packager
-          mkdir -p layout/DEBIAN
+      - name: Compile and Manual Package
+        run: |
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+          export THEOS_PACKAGE_SCHEME=rootless
+          
+          make clean all DEBUG=0
+          
+          mkdir -p layout/var/jb/Library/MobileSubstrate/DynamicLibraries/
+          mkdir -p layout/DEBIAN/
+          
+          find . -name "ElleKit.dylib" -exec cp {} layout/var/jb/Library/MobileSubstrate/DynamicLibraries/ElleKit.dylib \;
+          cp ElleKit.plist layout/var/jb/Library/MobileSubstrate/DynamicLibraries/
+          
           cat << 'EOF' > layout/DEBIAN/control
           Package: com.evelyneee.ellekit
           Name: ElleKit
@@ -60,15 +71,11 @@ jobs:
           Author: Twilight
           Section: Tweaks
           EOF
-
-      - name: Compile and Package
-        run: |
-          export THEOS=$HOME/theos
-          export PATH=$THEOS/bin:$PATH
-          export THEOS_PACKAGE_SCHEME=rootless
-          make clean package DEBUG=0 FINALPACKAGE=1
           
-          find . -name "*.deb" -exec cp {} ./ellekit-patched.deb \;
+          dpkg-deb -b layout ellekit-patched.deb
+          
+          echo "=== DEB Contents ==="
+          dpkg-deb -c ellekit-patched.deb
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
