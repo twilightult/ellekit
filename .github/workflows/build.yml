@@ -14,26 +14,37 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Theos
+      - name: Build ElleKit via Xcode
         run: |
-          git clone --recursive https://github.com/theos/theos.git $HOME/theos
-          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          echo "$HOME/theos/bin" >> $GITHUB_PATH
+          xcodebuild -scheme ellekit -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
+          xcodebuild -scheme injector -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
+          xcodebuild -scheme loader -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
+          xcodebuild -scheme launchd -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED="NO" CODE_SIGNING_REQUIRED="NO" CODE_SIGN_IDENTITY="" build
 
-      - name: Install Dependencies
+      - name: Package DEB
         run: |
-          brew install ldid xz
-
-      - name: Compile ElleKit
-        run: |
-          export THEOS_PACKAGE_SCHEME=rootless
-          export TARGET=iphone:clang:latest:15.0
-          export ARCHS=arm64e
-          export CODESIGN_FLAGS="-S"
-          make clean package DEBUG=0 FINALPACKAGE=1
+          mkdir -p layout/var/jb/usr/lib/TweakInject/
+          mkdir -p layout/var/jb/usr/lib/
+          mkdir -p layout/DEBIAN/
+          
+          find . -name "ElleKit.dylib" -exec cp {} layout/var/jb/usr/lib/TweakInject/ \;
+          find . -name "libellekit.dylib" -exec cp {} layout/var/jb/usr/lib/ \;
+          
+          cat <<EOF > layout/DEBIAN/control
+          Package: com.evelyneee.ellekit
+          Name: ElleKit
+          Version: 1.2-patched
+          Architecture: iphoneos-arm64
+          Description: Patched ElleKit for iOS 17.4.1
+          Maintainer: Twilight
+          Author: Twilight
+          Section: Tweaks
+          EOF
+          
+          dpkg-deb -b layout ellekit-patched.deb
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: ellekit-rootless-arm64e
-          path: packages/*.deb
+          name: ellekit-patched-rootless
+          path: ellekit-patched.deb
