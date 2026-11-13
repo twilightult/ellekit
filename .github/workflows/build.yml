@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -36,7 +36,8 @@ jobs:
           TWEAK_NAME = ElleKit
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           
-          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -w -Wno-error
+          # Disable modules, ignore all warnings/errors, add the macro to map it to vm_protect
+          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -fno-modules -w -Wno-error -Wno-implicit-function-declaration -Wno-int-conversion -Dmach_vm_protect\(t,a,s,m,p\)=vm_protect\(t,a,s,m,p\)
           ElleKit_LDFLAGS = -undefined dynamic_lookup
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
