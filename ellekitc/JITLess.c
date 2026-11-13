@@ -14,10 +14,13 @@
 #include <mach/thread_state.h>
 #include <mach/thread_status.h>
 #include "include/mach.h"
+mach_port_t EKLaunchExceptionHandler(void) {
+    return MACH_PORT_NULL;
+}
 
-__attribute__((visibility("default"))) extern mach_port_t EKLaunchExceptionHandler(void);
-__attribute__((visibility("default"))) extern void EKAddHookToRegistry(void* target, void* replacement);
-
+void EKAddHookToRegistry(void* target, void* replacement) {
+    return;
+}
 /*
 void EKOrigPrelog(void) {
     thread_act_t thread = mach_thread_self();
