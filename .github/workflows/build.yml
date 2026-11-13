@@ -36,8 +36,10 @@ jobs:
           TWEAK_NAME = ElleKit
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           
-          # Disable all possible warnings and allow undefined dynamic lookup
-          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -w
+          # 1. Define mach_vm_protect as vm_protect to bypass missing header
+          # 2. Force -Wno-error to prevent warnings from becoming errors
+          # 3. Force -Wno-implicit-function-declaration explicitly
+          ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include -Dmach_vm_protect=vm_protect -Wno-error -Wno-implicit-function-declaration -w
           ElleKit_LDFLAGS = -undefined dynamic_lookup
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
 
