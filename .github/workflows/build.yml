@@ -1,4 +1,4 @@
-name: Build ElleKit Rootless with Theos
+name: Build ElleKit Rootless
 
 on:
   push:
@@ -19,9 +19,11 @@ jobs:
           # Install required tools
           brew install ldid xz dpkg make
           
-          # Setup Theos
+          # Fix Homebrew make name issue
+          sudo ln -s $(brew --prefix)/opt/make/libexec/gnubin/make /usr/local/bin/make || true
+          
+          # Setup Theos (Do NOT re-clone sdks since theos already has it)
           git clone --recursive https://github.com/theos/theos.git $HOME/theos
-          git clone --depth=1 https://github.com/theos/sdks.git $HOME/theos/sdks
           
           export THEOS=$HOME/theos
           export PATH=$THEOS/bin:$PATH
@@ -37,7 +39,6 @@ jobs:
 
       - name: Generate Makefile
         run: |
-          # Create a clean Theos Makefile to bypass Xcode entirely
           cat << 'EOF' > Makefile
           TARGET := iphone:clang:latest:15.0
           ARCHS = arm64e
@@ -50,7 +51,6 @@ jobs:
           ElleKit_FILES = ellekitc/ellekitc.c ellekitc/JITLess.c ellekitc/routines.s injector/injector.c
           ElleKit_CFLAGS = -fobjc-arc -Iellekitc/include -Iinjector -Iellekit/include
           ElleKit_FRAMEWORKS = Foundation CoreFoundation
-          ElleKit_PRIVATE_FRAMEWORKS = 
 
           include $(THEOS_MAKE_PATH)/tweak.mk
           EOF
@@ -62,7 +62,6 @@ jobs:
           export THEOS_PACKAGE_SCHEME=rootless
           make clean package DEBUG=0 FINALPACKAGE=1
           
-          # Ensure the deb is found even if Theos names it weirdly
           find . -name "*.deb" -exec cp {} ./ellekit-patched.deb \;
 
       - name: Upload DEB
